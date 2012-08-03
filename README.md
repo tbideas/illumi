@@ -14,7 +14,7 @@ Right now you need to define your wireless network settings in the file settings
 You can build a very simple Illumi lamp with the instructions available at: 
 http://www.tbideas.com/blog/category/build-your-own/
 
-Or you can wait a little bit and order a high power Illumi lamp from [tbideas.com][http://www.tbideas.com] (available in fall 2012).
+Or you can wait a little bit and order a high power Illumi lamp from [tbideas.com](http://www.tbideas.com) (available in fall 2012).
 
 ## License
 
