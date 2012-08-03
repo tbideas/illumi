@@ -14,14 +14,6 @@
 #include "IllumiWiflyDelegate.h"
 #include "ColorLED.h"
 
-// Where is the RGB LED connected (must-be PWM pins)
-#define RED 9
-#define GREEN 10
-#define BLUE 11
-
-// Is the RGB a common-anode (set false if your hardware is common-cathode)
-#define COMMON_ANODE false
-
 // Define buffer sizes
 #define BUFFER_SIZE 100
 #define OUTPUT_SIZE 300
