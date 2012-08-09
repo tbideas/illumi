@@ -9,7 +9,13 @@ This is the code that is embedded in the lamp.
 
 Right now you need to define your wireless network settings in the file settings.h. Also the program is expecting an RGB led with a common ccathode on pins 9, 10 and 11. If this is not your setting, change those in settings.h.
 
-## How to get started with Illumi
+## How to get the app?
+
+The iOS application is not yet available on the AppStore but you can join [the beta program](http://tflig.ht/RDWY1H).
+
+Android coming soon!
+
+## How to get a Illumi lamp?
 
 You can build a very simple Illumi lamp with the instructions available at: 
 http://www.tbideas.com/blog/category/build-your-own/
