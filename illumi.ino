@@ -39,6 +39,8 @@ void setup() {
 
   delay(1000);
   led.setColor(0,0,0);
+  
+  Serial1.setTimeout(10);
 }
 
 void loop() {
