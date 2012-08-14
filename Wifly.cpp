@@ -13,19 +13,28 @@
 #define WIFLY_CMD_SIZE 100 // set wlan phrase = 
 #define WIFLY_BUF_SIZE 100
 
-Wifly::Wifly(HardwareSerial &s, WiflyDelegate *delegate) : serial(s), delegate(delegate)
+Wifly::Wifly(HardwareSerial &s, WiflyDelegate *delegate) : ws(s), delegate(delegate)
 {
 }
 
 void Wifly::initialize(char *ssid, char *password) {
   unsigned int retries = 0;
   
+  unsigned int speeds[] = { 57600, 9600 };
+  byte speed = 0;
+
   while (1) {
+    ws.begin(speeds[speed]);
+    
     if (gotoCommandMode()) {
+      if (speed != 0) {
+        initComm(speeds[0]);
+      }
       if (joinNetwork(ssid, password)) {
         return;
       }
     }
+    speed = ++speed % 2;
     retries++;
   }
 }
@@ -39,16 +48,25 @@ boolean Wifly::gotoCommandMode()
     delegate->initializationProgress(WIFLY_RESETTING);
 
   // Make sure we are not in command mode
-  Serial.write("\r\nexit\r\n");
+  ws.write("\r\nexit\r\n");
   
   for (tries = 0; tries < 3; tries++) {
-    Serial.write("$$$");
-    Serial.flush();
+    ws.write("$$$");
+    ws.flush();
     
     if (waitForString("CMD", 500))
       return true;
   }
   return false;
+}
+
+boolean Wifly::initComm(unsigned int speed)
+{
+  // FIXME - Save memory by avoiding one more snprintf here
+  ws.write("set uart instant 57600\r\n");
+  ws.flush();
+  ws.end();
+  ws.begin(57600);
 }
 
 boolean Wifly::joinNetwork(char *ssid, char *password)
@@ -106,9 +124,9 @@ boolean Wifly::joinNetwork(char *ssid, char *password)
  * Command does not need to be \n terminated.
  */
 boolean Wifly::sendWiflyCommand(char *command, char *reply, unsigned long timeout) {
-  Serial.flush();
-  Serial.write(command);
-  Serial.write("\r\n");
+  ws.flush();
+  ws.write(command);
+  ws.write("\r\n");
 
   return waitForString(reply, timeout); 
 }
@@ -119,8 +137,8 @@ boolean Wifly::waitForString(char *string,  unsigned long timeout)
   char buffer[WIFLY_BUF_SIZE];
   
   while (millis() < start + timeout) {
-    if (Serial.available()) {
-      int len = Serial.readBytes(buffer, WIFLY_BUF_SIZE - 1);
+    if (ws.available()) {
+      int len = ws.readBytes(buffer, WIFLY_BUF_SIZE - 1);
       buffer[len] = 0;
       
       if (strstr(buffer, string))
@@ -131,7 +149,7 @@ boolean Wifly::waitForString(char *string,  unsigned long timeout)
 }
 
 int Wifly::exitWiflyCommand() {
-  Serial.write("exit\r\n");
-  Serial.flush();
+  ws.write("exit\r\n");
+  ws.flush();
 }
 

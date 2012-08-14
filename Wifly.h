@@ -47,9 +47,10 @@ class Wifly
     void initialize(char *ssid, char *password = 0);
   
   private:
-    HardwareSerial serial;
+    HardwareSerial ws;
     WiflyDelegate *delegate;
     
+    boolean initComm(unsigned int speed);
     boolean gotoCommandMode();
     boolean joinNetwork(char *ssid, char *password);
     int exitWiflyCommand();

@@ -18,9 +18,13 @@ class ColorLED
 {
   int redPin, greenPin, bluePin;
   boolean commonAnode;
+  int shutdownPin;
+  
+  void setup();
   
   public:
     ColorLED(int redPin, int greenPin, int bluePin, boolean commonAnode);
+    ColorLED(int redPin, int greenPin, int bluePin, boolean commonAnode, int shutdownPin);
     void setColor(int red, int green, int blue);
 };
 

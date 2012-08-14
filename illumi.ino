@@ -20,32 +20,33 @@
 
 int red, green, blue;
 
+#ifndef LED_SHUTDOWN
 ColorLED led(RED, GREEN, BLUE, COMMON_ANODE);
+#else
+ColorLED led(RED, GREEN, BLUE, COMMON_ANODE, LED_SHUTDOWN);
+#endif
+
 IllumiWiflyDelegate wDelegate(led);
 
 void setup() {
-  Serial.begin(9600);
-  Serial.setTimeout(100); // timeout for reading on serial port
 
   int i;
 
   led.setColor(0, 0, 0);
   
-  Wifly wifly(Serial, &wDelegate);
+  Wifly wifly(Serial1, &wDelegate);
   wifly.initialize(SSID, WPA_PASSWORD);
 
   delay(1000);
   led.setColor(0,0,0);
-
-  Serial.write("Illumi, Ready to Roll!\n");
 }
 
 void loop() {
   char buffer[BUFFER_SIZE];
   char output[OUTPUT_SIZE];
   
-  if (Serial.available()) {
-    int len = Serial.readBytes(buffer, BUFFER_SIZE);
+  if (Serial1.available()) {
+    int len = Serial1.readBytes(buffer, BUFFER_SIZE);
     
     // Remove potential carriage return at the end of command.
     if (buffer[len - 1] == '\n') {
@@ -60,9 +61,8 @@ void loop() {
     bool gotCommand = false;
 
     if (strstr(buffer, "*OPEN*")) {
-      Serial.write("\nC-Light! Ready to roll.\n");
       snprintf(output, OUTPUT_SIZE, "RGB%x%x%x\n", red, green, blue);
-      Serial.write(output);
+      Serial1.write(output);
       gotCommand = true;
     }
     
@@ -75,16 +75,16 @@ void loop() {
       led.setColor(red, green, blue);
       
       snprintf(output, OUTPUT_SIZE, "RGB%02x%02x%02x\n", red, green, blue);   
-      Serial.write(output);
+      Serial1.write(output);
       gotCommand = true;
     }
     
     if (!gotCommand)
     {
-      snprintf(output, OUTPUT_SIZE, "Command not understood: >%s< (len=%i)\n", buffer, len);
-      Serial.write(output);
+      snprintf(output, OUTPUT_SIZE, "KO >%s< (len=%i)\n", buffer, len);
+      Serial1.write(output);
     }
-  } 
+  }
 }
 
 int hexPairsToInt(char *pair)
