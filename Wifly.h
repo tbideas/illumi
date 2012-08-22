@@ -41,18 +41,21 @@ class Wifly
     /*
      * Initializes the hardware and wait until the Wifly has connected to the given network.
      * 
-     * If you are using WPA/WP2, give the shared-key used.
-     * If the network is opened, do not give a password.
      */
-    void initialize(char *ssid, char *password = 0);
-  
+    void initialize(char *ssid);
+    void initializeWep(char *ssid, char *password);
+    void initializeWpa(char *ssid, char *passphrase);
+
   private:
     HardwareSerial ws;
     WiflyDelegate *delegate;
+    char *ssid;
+    char *wpaPassphrase;
+    char *wepPassword;
     
     boolean initComm(unsigned int speed);
     boolean gotoCommandMode();
-    boolean joinNetwork(char *ssid, char *password);
+    boolean joinNetwork();
     int exitWiflyCommand();
 
     boolean waitForString(char *string,  unsigned long timeout);

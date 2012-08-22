@@ -15,14 +15,29 @@
 
 Wifly::Wifly(HardwareSerial &s, WiflyDelegate *delegate) : ws(s), delegate(delegate)
 {
+  ssid = wepPassword = wpaPassphrase = NULL;
 }
 
-void Wifly::initialize(char *ssid, char *password) {
+void Wifly::initializeWep(char *ssid, char *password)
+{
+  wepPassword = password;
+  initialize(ssid);
+}
+
+void Wifly::initializeWpa(char *ssid, char *passphrase)
+{
+  wpaPassphrase = passphrase;
+  initialize(ssid);
+}
+
+void Wifly::initialize(char *ssid) {
   unsigned int retries = 0;
   
   unsigned int speeds[] = { 57600, 9600 };
   byte speed = 0;
 
+  this->ssid = ssid;
+  
   while (1) {
     ws.begin(speeds[speed]);
     
@@ -30,7 +45,7 @@ void Wifly::initialize(char *ssid, char *password) {
       if (speed != 0) {
         initComm(speeds[0]);
       }
-      if (joinNetwork(ssid, password)) {
+      if (joinNetwork()) {
         return;
       }
     }
@@ -69,7 +84,7 @@ boolean Wifly::initComm(unsigned int speed)
   ws.begin(57600);
 }
 
-boolean Wifly::joinNetwork(char *ssid, char *password)
+boolean Wifly::joinNetwork()
 {
   char command[WIFLY_CMD_SIZE];
 
@@ -79,18 +94,19 @@ boolean Wifly::joinNetwork(char *ssid, char *password)
   sendWiflyCommand(command, "AOK");
 
   // Set wlan mode WPA1+WPA2-PSK
-  if (password != NULL) {
+  if (wpaPassphrase != NULL) {
     sendWiflyCommand("set w a 4", "AOK");
 
     // Prepare the "set wlan phrase" command
-    snprintf(command, WIFLY_CMD_SIZE, "set w p %s", password);
+    snprintf(command, WIFLY_CMD_SIZE, "set w p %s", wpaPassphrase);
     // Send the "set wlan phrase" command and wait for "AOK" reply
     sendWiflyCommand(command, "AOK");
-
-    // Note: WEP not supported but you should not be using WEP anyway.
-    // If you really have to:
-    // sendWiflyCommand("set wlan auth 1", "AOK");
-    // sendWiflyCommand("set wlan key 112233445566778899AABBCCDD", "AOK");
+  }
+  else if (wepPassword != NULL) {
+    sendWiflyCommand("set w a 1", "AOK");
+    
+    snprintf(command, WIFLY_CMD_SIZE, "set w k %s", wepPassword);
+    sendWiflyCommand(command, "AOK");
   }
   // Or open network.
   else {
@@ -104,6 +120,12 @@ boolean Wifly::joinNetwork(char *ssid, char *password)
   sendWiflyCommand("set b p 14484", "AOK");
   sendWiflyCommand("set b i 2", "AOK");
   sendWiflyCommand("set o d v00|Illumi$Proto", "AOK");
+  
+  // Send an IP packet each time a \n is given
+  sendWiflyCommand("set c m 13", "AOK");
+  
+  // Enable TCP & UDP - set ip proto 3
+  sendWiflyCommand("set i p 3", "AOK");
   
   if (delegate)
     delegate->initializationProgress(WIFLY_JOINING);

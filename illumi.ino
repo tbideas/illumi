@@ -34,14 +34,23 @@ void setup() {
 
   led.setColor(0, 0, 0);
   
+  Serial1.setTimeout(10);
   Wifly wifly(Serial1, &wDelegate);
-  wifly.initialize(SSID, WPA_PASSWORD);
-
+  #ifdef WPA_PASSPHRASE
+  wifly.initializeWpa(SSID, WPA_PASSPHRASE);
+  #elif defined WEP_PASSWORD
+  wifly.initializeWep(SSID, WEP_PASSWORD);
+  #else
+  wifly.initialize(SSID);
+  #endif
   delay(1000);
   led.setColor(0,0,0);
   
-  Serial1.setTimeout(10);
+  // Use D2 as an instruction counter to measure the speed of transmission
+  pinMode(2, OUTPUT);
 }
+
+byte counter = 0;
 
 void loop() {
   char buffer[BUFFER_SIZE];
@@ -79,6 +88,8 @@ void loop() {
       snprintf(output, OUTPUT_SIZE, "RGB%02x%02x%02x\n", red, green, blue);   
       Serial1.write(output);
       gotCommand = true;
+      
+      digitalWrite(2, counter++ % 2 == 0 ? HIGH : LOW);
     }
     
     if (!gotCommand)
