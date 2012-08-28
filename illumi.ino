@@ -11,16 +11,26 @@
 // Edit your wifi settings in settings.h so that it is easy to pull/push
 // on github without pushing those local settings.
 #include "settings.h"
+#include "Color.h"
 #include "ColorLED.h"
 
 // Define buffer sizes
 #define BUFFER_SIZE 255
 
+// If we have not received a command in the last 5 seconds, save the last command in the EEPROM
+#define LASTCMD_WAIT_TIMER 5000
+
+#define STARTUP_TIMER 2000
+
 // The last command will take up at most 254 bytes. 
 // The first byte is used to tell the length so the next available byte is @ 0x100
 #define EEPROM_LAST_CMD 0x0000 
 
-int red, green, blue;
+unsigned long startTime;
+unsigned long targetTime;
+Color startColor;
+Color currentColor;
+Color targetColor;
 
 #ifndef LED_SHUTDOWN
 ColorLED led(RED, GREEN, BLUE, COMMON_ANODE);
@@ -29,10 +39,9 @@ ColorLED led(RED, GREEN, BLUE, COMMON_ANODE, LED_SHUTDOWN);
 #endif
 
 void setup() {
-
   int i;
 
-  led.setColor(0, 0, 0);
+  led.setColor(currentColor);
   
   Serial.setTimeout(1);
   Serial.begin(115200);
@@ -44,11 +53,9 @@ void setup() {
   if (lastCommand != NULL) {
     Serial.write("Reloading last command:");
     Serial.write(lastCommand);
+    
     processCommand(lastCommand);
-  }
-  else {
-    Serial.write("Starting from scratch");
-    led.setColor(100, 0, 0);
+    targetTime = millis() + STARTUP_TIMER;
   }
   
   // Use D2 as an instruction counter to measure the speed of transmission
@@ -62,8 +69,19 @@ unsigned long lastCommandTime = 0;
 char *lastCommandPtr;
 
 void loop() {
+  updateLed();
   processWifiInterface();
-  processDebugInterface();  
+  processDebugInterface();
+}
+
+void updateLed() {
+  if (targetTime != 0 && millis() < targetTime) {
+    currentColor = Color::interpolateColor(millis(), startTime, targetTime, startColor, targetColor);
+  }
+  else {
+    memcpy(&currentColor, &targetColor, sizeof(Color));
+  }
+  led.setColor(currentColor.red, currentColor.green, currentColor.blue);
 }
 
 void processWifiInterface()
@@ -83,6 +101,10 @@ void processWifiInterface()
 
     char *rgbCommand = strstr(buffer, "RGB");
     if (rgbCommand != NULL) {
+      Serial.write("CMD ");
+      Serial.write(rgbCommand);
+      Serial.write('\n');
+      
       processCommand(rgbCommand);
       
       digitalWrite(2, counter++ % 2 == 0 ? HIGH : LOW);
@@ -91,16 +113,15 @@ void processWifiInterface()
       lastCommandPtr = rgbCommand;
     }
     else {
-      Serial1.write("KO >");
-      Serial1.write((const uint8_t*)buffer, len);
       Serial.write("KO >");
       Serial.write((const uint8_t*)buffer, len);
+      Serial.write('\n');
     }
   }
-  // If we have not received a command in the last 5 seconds, save the last command in the EEPROM
-  if (lastCommandTime != 0 && millis() > lastCommandTime + 5000) {
+  if (lastCommandTime != 0 && millis() > lastCommandTime + LASTCMD_WAIT_TIMER) {
     Serial.write("Saving last command: ");
     Serial.write(lastCommandPtr);
+    Serial.write('\n');
     saveLastCommand(lastCommandPtr);    
     lastCommandTime = 0;
   }
@@ -114,33 +135,35 @@ void processDebugInterface()
     char command = Serial.read();
     switch (command) {
       case '?':
-        Serial.write("\nUp and running!\n");
+        Serial.print("Up and running!\n");
         break;
       case 'L':
-        Serial.write("\nLast Command (EEPROM):\n");
+        Serial.print("Last Command (EEPROM):\n");
         last = readLastCommand();
         if (last != NULL)
-          Serial.write(last);
+          Serial.print(last);
         else
-          Serial.write("NULL");
+          Serial.print("NULL");
+        Serial.print('\n');
         break;
       case 'l':
         if (lastCommandTime != 0) {
-          Serial.write("\nLast Command Time = ");
-          Serial.write(lastCommandTime);
-          Serial.write(" And millis() is: ");
-          Serial.write(millis());
-          Serial.write("\nLast Command buffer points to:");
-          Serial.write(lastCommandPtr);
+          Serial.print("Last Command Time = ");
+          Serial.print(lastCommandTime);
+          Serial.print(" And millis() is: ");
+          Serial.print(millis());
+          Serial.print("\nLast Command buffer points to:");
+          Serial.print(lastCommandPtr);
+          Serial.print('\n');
         }
         else {
-          Serial.write("No last command.\n");
+          Serial.print("No last command.\n");
         }
         break;
       default:
-        Serial.write("Unknown command: ");
-        Serial.write(command);
-        Serial.write("\n");
+        Serial.print("Unknown command: ");
+        Serial.print(command);
+        Serial.print("\n");
     }
   }
 }
@@ -148,11 +171,14 @@ void processDebugInterface()
 void processCommand(char *command)
 {
   // The only command format supported right now is RGBXXXXXX\n
-  red = hexPairsToInt(command + 3);
-  green = hexPairsToInt(command + 5);
-  blue = hexPairsToInt(command + 7);
-
-  led.setColor(red, green, blue);
+  targetColor.red   = hexPairsToInt(command + 3);
+  targetColor.green = hexPairsToInt(command + 5);
+  targetColor.blue  = hexPairsToInt(command + 7);
+  
+  startColor = currentColor;
+  startTime = millis();
+  // No animation for this command
+  targetTime = millis();
 }
 
 void saveLastCommand(char *cmd)
@@ -164,10 +190,8 @@ void saveLastCommand(char *cmd)
   if (len <= 0xFE) { // max len is 0xFF including 1 byte for length
     EEPROM.write(address++, (byte)len);
     
-    Serial.write("Saving to EEPROM...\n");
     for (i = 0; i < len; i++)
     {
-      Serial.write(*cmd);
       EEPROM.write(address++, *cmd);
       cmd++;
     } 

@@ -13,6 +13,7 @@
 #define __COLORLED_H__
 
 #include "Arduino.h"
+#include "Color.h"
 
 class ColorLED
 {
@@ -26,6 +27,7 @@ class ColorLED
     ColorLED(int redPin, int greenPin, int bluePin, boolean commonAnode);
     ColorLED(int redPin, int greenPin, int bluePin, boolean commonAnode, int shutdownPin);
     void setColor(int red, int green, int blue);
+    void setColor(const Color c);
 };
 
 #endif

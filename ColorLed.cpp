@@ -52,3 +52,9 @@ void ColorLED::setColor(int red, int green, int blue)
   }
 }
 
+void ColorLED::setColor(const Color c)
+{
+  setColor(c.red, c.green, c.blue);
+}
+
+
