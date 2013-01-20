@@ -8,6 +8,25 @@
  *
  */
 
+
+/*
+
+Manual wifi setup
+
+set uart baud 115200
+set w ssid YourSSID
+set w p YourPassword
+set w a 4
+set b p 14484
+set b i 2
+set o d v00|Illumi$Proto
+set c m 13
+set i p 3
+save
+reboot
+// reconnect in 115200
+*/
+
 #include "Wifly.h"
 
 #define WIFLY_CMD_SIZE 100 // set wlan phrase = 
