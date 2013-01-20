@@ -7,6 +7,20 @@
  *
  */
 
+/*
+set uart baud 115200
+set wlan ssid sarfata2
+set wlan phrase BpFUBBCqfb8E
+
+set ip address 0.0.0.0
+set ip remote 80
+set dns name io.sarfata.org
+set ip proto 18
+set com remote GET$/illumi/?
+set option format 17
+*/
+
+
 #include <EEPROM.h>
 // Edit your wifi settings in settings.h so that it is easy to pull/push
 // on github without pushing those local settings.
@@ -97,6 +111,9 @@ void updateLed() {
   led.setColor(currentColor.red, currentColor.green, currentColor.blue);
 }
 
+#define REMOTE_TIMER 3000
+unsigned long remoteTimer = millis();
+
 void processWifiInterface()
 {
   if (Serial1.available()) {
@@ -130,6 +147,9 @@ void processWifiInterface()
       DEBUG(buffer);
       DEBUG('\n');
     }
+    // reset the timer when the connection is closed
+    if (strstr(buffer, "*CLOS*")) {
+      remoteTimer = millis();
     }
   }
   if (lastCommandTime != 0 && millis() > lastCommandTime + LASTCMD_WAIT_TIMER) {
@@ -138,6 +158,10 @@ void processWifiInterface()
     DEBUG('\n');
     saveLastCommand(lastCommandPtr);    
     lastCommandTime = 0;
+  }
+  if (remoteTimer != 0 && millis() > remoteTimer + REMOTE_TIMER) {
+    remote_connect();
+    remoteTimer = 0;
   }
 }
 
@@ -175,6 +199,16 @@ void processDebugInterface()
         else {
           Serial.print("No last command.\n");
         }
+        break;
+      // 
+      case 'w':
+        wifly_configuration(115200);
+        break;
+      case 'W':
+        wifly_configuration(9600);
+        break;
+      case 'o':
+        remote_connect();
         break;
       default:
         Serial.print("Unknown command: ");
@@ -251,4 +285,43 @@ int hexCharToInt(char c) {
     else if (c >= 'A' && c <= 'F') 
       return c - 'A' + 10;
     return 0;
+}
+
+// Ask the wifi module to connect to a remote host
+void remote_connect()
+{
+  Serial1.print("$$$");
+  Serial1.flush();
+  delay(400);
+  Serial1.print("\r\nopen\r\n");
+  Serial1.flush();
+}
+
+void wifly_configuration(long speed)
+{
+  Serial1.end();
+  Serial1.begin(speed);
+  
+  Serial.print("You are now talking to the Wifly module at ");
+  Serial.print(speed);
+  Serial.println("bps.");
+  Serial.println("Use the RESET button to go back to normal.");
+
+  Serial.setTimeout(1);
+  Serial1.setTimeout(1);
+
+  int len;
+  
+  while (1) {
+    if (Serial.available()) {
+      len = Serial.readBytes(buffer, BUFFER_SIZE - 1);
+      
+      Serial1.write((uint8_t*)buffer, len);
+    }
+    if (Serial1.available()) {
+      len = Serial1.readBytes(buffer, BUFFER_SIZE - 1);
+      
+      Serial.write((uint8_t*)buffer, len);
+    }
+  }
 }
