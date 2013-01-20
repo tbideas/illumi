@@ -10,7 +10,7 @@
 /*
 set uart baud 115200
 set wlan ssid sarfata2
-set wlan phrase BpFUBBCqfb8E
+set wlan phrase PASSWORD
 
 set ip address 0.0.0.0
 set ip remote 80
