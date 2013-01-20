@@ -26,6 +26,16 @@
 // The first byte is used to tell the length so the next available byte is @ 0x100
 #define EEPROM_LAST_CMD 0x0000 
 
+
+//#define ARDUINO_UNO
+
+#ifdef ARDUINO_UNO
+#define Serial1 Serial
+#define DEBUG(msg) /* nothing */
+#else
+#define DEBUG(msg) Serial.write(msg)
+#endif
+
 unsigned long startTime;
 unsigned long targetTime;
 Color startColor;
@@ -43,16 +53,19 @@ void setup() {
 
   led.setColor(currentColor);
   
-  Serial.setTimeout(1);
-  Serial.begin(115200);
+  #ifndef ARDUINO_UNO
+  // Arduino Uno
+  //Serial.setTimeout(1);
+  //Serial.begin(115200);
+  #endif
   
   Serial1.setTimeout(10);
   Serial1.begin(115200);
   
   char *lastCommand = readLastCommand();
   if (lastCommand != NULL) {
-    Serial.write("Reloading last command:");
-    Serial.write(lastCommand);
+    DEBUG("Reloading last command:");
+    DEBUG(lastCommand);
     
     processCommand(lastCommand);
     targetTime = millis() + STARTUP_TIMER;
@@ -101,9 +114,9 @@ void processWifiInterface()
 
     char *rgbCommand = strstr(buffer, "RGB");
     if (rgbCommand != NULL) {
-      Serial.write("CMD ");
-      Serial.write(rgbCommand);
-      Serial.write('\n');
+      DEBUG("CMD ");
+      DEBUG(rgbCommand);
+      DEBUG('\n');
       
       processCommand(rgbCommand);
       
@@ -113,19 +126,22 @@ void processWifiInterface()
       lastCommandPtr = rgbCommand;
     }
     else {
-      Serial.write("KO >");
-      Serial.write((const uint8_t*)buffer, len);
-      Serial.write('\n');
+      DEBUG("KO >");
+      DEBUG(buffer);
+      DEBUG('\n');
+    }
     }
   }
   if (lastCommandTime != 0 && millis() > lastCommandTime + LASTCMD_WAIT_TIMER) {
-    Serial.write("Saving last command: ");
-    Serial.write(lastCommandPtr);
-    Serial.write('\n');
+    DEBUG("Saving last command: ");
+    DEBUG(lastCommandPtr);
+    DEBUG('\n');
     saveLastCommand(lastCommandPtr);    
     lastCommandTime = 0;
   }
 }
+
+#ifndef ARDUINO_UNO
 
 void processDebugInterface()
 {
@@ -167,6 +183,12 @@ void processDebugInterface()
     }
   }
 }
+
+#else
+
+void processDebugInterface() {} 
+
+#endif
 
 void processCommand(char *command)
 {
