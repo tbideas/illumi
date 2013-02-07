@@ -8,6 +8,8 @@
  */
 
 /*
+$$$
+
 set uart baud 115200
 set wlan ssid sarfata2
 set wlan phrase PASSWORD
@@ -18,6 +20,10 @@ set dns name io.sarfata.org
 set ip proto 18
 set com remote GET$/illumi/?
 set option format 17
+
+save
+reboot
+
 */
 
 
