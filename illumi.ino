@@ -181,7 +181,14 @@ void processDebugInterface()
     char command = Serial.read();
     switch (command) {
       case '?':
-        Serial.print("Up and running!\n");
+        Serial.println("Illumi / Woochi by TBideas\nUp and running!");
+        Serial.println(" x: Type and execute a command");
+        Serial.println(" w: Talk to Wifi module at 115200bps");
+        Serial.println(" W: Talk to Wifi module at 9600bps");
+        Serial.println(" o: Force connection to remote HTTP server");
+        Serial.println(" L: Get 'last command' saved in EEPROM");
+        Serial.println(" l: Time since last command");
+        Serial.println("");
         break;
       case 'L':
         Serial.print("Last Command (EEPROM):\n");
@@ -215,6 +222,9 @@ void processDebugInterface()
         break;
       case 'o':
         remote_connect();
+        break;
+      case 'x':
+        readSerialCommand();
         break;
       default:
         Serial.print("Unknown command: ");
@@ -301,6 +311,28 @@ void remote_connect()
   delay(400);
   Serial1.print("\r\nopen\r\n");
   Serial1.flush();
+}
+
+void readSerialCommand()
+{
+  Serial.println("Type a command and finish with \\n (Only command supported is RGBBXXXXXX");
+
+  int len = 0;
+  buffer[0] = 0;
+  while (len + 1 < BUFFER_SIZE) {
+    char c = Serial.read();
+    if (c > -1 && c != '\r') {
+      buffer[len++] = c;
+      Serial.print(c);
+      if (buffer[len - 1] == '\n') 
+        break;
+    }
+  }
+  buffer[len] = 0;
+
+  Serial.print("Running command: ");
+  Serial.println(buffer);
+  processCommand(buffer);
 }
 
 void wifly_configuration(long speed)
